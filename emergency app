@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency App with Health Tips</title>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!-- Leaflet for maps -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"/>
+</head>
+<body>
+    <main>
+        <!-- Dark Mode Toggle -->
+        <button id="toggleDarkMode"><i class="fas fa-adjust"></i> Toggle Dark Mode</button>
+
+        <!-- Emergency Services Section -->
+        <section class="emergency">
+            <h2>Emergency Services</h2>
+            <button id="callAmbulance"><i class="fas fa-ambulance"></i> Call Ambulance</button>
+            <button id="callFire"><i class="fas fa-fire-extinguisher"></i> Call Fire Department</button>
+            <button id="callPolice"><i class="fas fa-car"></i> Call Police</button>
+        </section>
+
+        <!-- Emergency Contacts Section -->
+        <section class="contacts">
+            <h2>Emergency Contacts</h2>
+            <ul id="contactList"></ul>
+            <button id="addContact"><i class="fas fa-plus"></i> Add Emergency Contact</button>
+        </section>
+
+        <!-- Location Section -->
+        <section class="location">
+            <h2>Current Location</h2>
+            <div id="map" style="width: 100%; height: 300px;"></div>
+            <button id="refreshLocation"><i class="fas fa-sync-alt"></i> Refresh Location</button>
+        </section>
+
+        <!-- Daily Health Tips and First Aid Instructions -->
+        <section class="health-tips">
+            <h2>Daily Health Tips</h2>
+            <ul id="dailyHealthTips">
+                <!-- Tips will be dynamically added here -->
+            </ul>
+        </section>
+
+        <section class="first-aid">
+            <h2>Basic First Aid Instructions</h2>
+            <div id="firstAidInstructions">
+                <h3>For Cuts and Scrapes:</h3>
+                <p>1. Wash your hands to prevent infection.</p>
+                <p>2. Clean the wound with water and mild soap.</p>
+                <p>3. Apply an antibiotic ointment and cover with a sterile bandage.</p>
+
+                <h3>For Burns:</h3>
+                <p>1. Cool the burn under running water for 10 minutes.</p>
+                <p>2. Do not apply ice or butter.</p>
+                <p>3. Cover with a clean, non-stick dressing.</p>
+
+                <h3>For Sprains:</h3>
+                <p>1. Rest the injured area.</p>
+                <p>2. Apply ice wrapped in a cloth for 15-20 minutes every hour.</p>
+                <p>3. Compress with an elastic bandage and elevate the area.</p>
+
+                <h3>For CPR (Cardiopulmonary Resuscitation):</h3>
+                <p>1. Check if the person is breathing. If not, call emergency services immediately.</p>
+                <p>2. Place the heel of one hand on the center of the chest, place the other hand on top, and interlock your fingers.</p>
+                <p>3. Push hard and fast, compressing at least 2 inches deep at a rate of 100-120 compressions per minute.</p>
+                <p>4. If trained, give 2 rescue breaths after every 30 compressions.</p>
+                <p>5. Continue until professional help arrives or the person shows signs of life.</p>
+            </div>
+        </section>
+
+        <!-- Symptoms Section -->
+        <section class="symptoms">
+            <h2>Symptoms of Common Diseases</h2>
+            <label for="diseaseSelect">Select a disease:</label>
+            <select id="diseaseSelect">
+                <option value="">--Select--</option>
+                <option value="flu">Flu</option>
+                <option value="diabetes">Diabetes</option>
+                <option value="hypertension">Hypertension</option>
+                <option value="covid">COVID-19</option>
+                <option value="asthma">Asthma</option>
+                <option value="heartDisease">Heart Disease</option>
+                <option value="stroke">Stroke</option>
+                <option value="allergy">Allergy</option>
+            </select>
+            <div id="symptomsList">
+                <!-- Symptoms will be dynamically added here -->
+            </div>
+        </section>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Toggle Dark Mode
+            const toggleDarkMode = () => {
+                document.body.classList.toggle('dark-mode');
+            };
+
+            document.getElementById('toggleDarkMode').addEventListener('click', toggleDarkMode);
+
+            // Emergency Services
+            const makeCall = (phoneNumber) => {
+                window.location.href = tel:${phoneNumber};
+            };
+
+            document.getElementById('callAmbulance').addEventListener('click', () => makeCall('+102'));
+            document.getElementById('callFire').addEventListener('click', () => makeCall('+112'));
+            document.getElementById('callPolice').addEventListener('click', () => makeCall('+100'));
+
+            // Emergency Contacts
+            const contactList = document.getElementById('contactList');
+            const contacts = JSON.parse(localStorage.getItem('emergencyContacts')) || [];
+
+            const renderContacts = () => {
+                contactList.innerHTML = '';
+                contacts.forEach((contact, index) => {
+                    const li = document.createElement('li');
+                    li.textContent = ${contact.name}: ${contact.phone};
+
+                    const callButton = document.createElement('button');
+                    callButton.textContent = 'Call';
+                    callButton.addEventListener('click', () => makeCall(contact.phone));
+
+                    const removeButton = document.createElement('button');
+                    removeButton.textContent = 'Remove';
+                    removeButton.addEventListener('click', () => {
+                        contacts.splice(index, 1);
+                        localStorage.setItem('emergencyContacts', JSON.stringify(contacts));
+                        renderContacts();
+                    });
+
+                    li.appendChild(callButton);
+                    li.appendChild(removeButton);
+                    contactList.appendChild(li);
+                });
+            };
+
+            document.getElementById('addContact').addEventListener('click', () => {
+                const name = prompt('Enter contact name:');
+                const phone = prompt('Enter contact phone:');
+                if (name && phone) {
+                    contacts.push({ name, phone });
+                    localStorage.setItem('emergencyContacts', JSON.stringify(contacts));
+                    renderContacts();
+                }
+            });
+
+            renderContacts();
+
+            // Location
+            const map = L.map('map').setView([51.505, -0.09], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+            }).addTo(map);
+
+            const refreshLocation = () => {
+                navigator.geolocation.getCurrentPosition(position => {
+                    const { latitude, longitude } = position.coords;
+                    map.setView([latitude, longitude], 13);
+                    L.marker([latitude, longitude]).addTo(map)
+                        .bindPopup('You are here!').openPopup();
+                }, () => {
+                    alert('Unable to fetch location.');
+                });
+            };
+
+            document.getElementById('refreshLocation').addEventListener('click', refreshLocation);
+            refreshLocation();
+
+            // Daily Health Tips
+            const healthTips = [
+                "Drink a glass of water first thing in the morning.",
+                "Incorporate at least 30 minutes of physical activity daily.",
+                "Eat a balanced diet rich in vegetables, fruits, and lean proteins.",
+                "Take breaks from screens to protect your eyes and posture.",
+                "Get 7-9 hours of quality sleep every night.",
+                "Practice mindfulness or meditation to reduce stress.",
+                "Avoid smoking and limit alcohol consumption.",
+                "Wash your hands frequently to prevent infections.",
+                "Use sunscreen to protect your skin from UV damage.",
+                "Have regular check-ups with your healthcare provider.",
+                "Maintain good oral hygiene by brushing and flossing daily.",
+                "Limit intake of processed and sugary foods.",
+                "Stay socially connected to improve mental health.",
+                "Keep a proper posture while sitting and standing.",
+                "Engage in hobbies that bring you joy and relaxation."
+            ];
+
+            const dailyHealthTips = document.getElementById('dailyHealthTips');
+            healthTips.forEach(tip => {
+                const li = document.createElement('li');
+                li.textContent = tip;
+                dailyHealthTips.appendChild(li);
+            });
+
+            // Symptoms of Diseases
+            const symptomsData = {
+                flu: [
+                    "Fever",
+                    "Cough",
+                    "Body aches",
+                    "Fatigue",
+                    "Runny or stuffy nose"
+                ],
+                diabetes: [
+                    "Increased thirst",
+                    "Frequent urination",
+                    "Unexplained weight loss",
+                    "Fatigue",
+                    "Blurred vision"
+                ],
+                hypertension: [
+                    "Often no symptoms",
+                    "Headaches",
+                    "Shortness of breath",
+                    "Nosebleeds (in severe cases)"
+                ],
+                covid: [
+                    "Fever",
+                    "Dry cough",
+                    "Loss of taste or smell",
+                    "Difficulty breathing",
+                    "Fatigue"
+                ],
+                asthma: [
+                    "Wheezing",
+                    "Shortness of breath",
+                    "Chest tightness",
+                    "Coughing, especially at night"
+                ],
+                heartDisease: [
+                    "Chest pain",
+                    "Shortness of breath",
+                    "Fatigue",
+                    "Irregular heartbeat"
+                ],
+                stroke: [
+                    "Sudden numbness or weakness in the face, arm, or leg",
+                    "Confusion or trouble speaking",
+                    "Difficulty walking",
+                    "Severe headache without known cause"
+                ],
+                allergy: [
+                    "Sneezing",
+                    "Runny or stuffy nose",
+                    "Itchy eyes, nose, or throat",
+                    "Skin rash or hives"
+                ]
+            };
+
+            const diseaseSelect = document.getElementById('diseaseSelect');
+            const symptomsList = document.getElementById('symptomsList');
+
+            diseaseSelect.addEventListener('change', () => {
+                const selectedDisease = diseaseSelect.value;
+                symptomsList.innerHTML = '';
+                if (selectedDisease && symptomsData[selectedDisease]) {
+                    const symptoms = symptomsData[selectedDisease];
+                    const ul = document.createElement('ul');
+                    symptoms.forEach(symptom => {
+                        const li = document.createElement('li');
+                        li.textContent = symptom;
+                        ul.appendChild(li);
+                    });
+                    symptomsList.appendChild(ul);
+                }
+            });
+        });
+    </script>
+
+    <style>
+        /* Dark Mode Styling */
+        body.dark-mode {
+            background-color: #121212;
+            color: #ffffff;
+        }
+
+        /* Button Styling */
+        button {
+            margin: 5px;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        /* List Styling */
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        ul li {
+            margin: 5px 0;
+        }
+
+        /* Map Styling */
+        #map {
+            border: 1px solid #ccc;
+        }
+
+        /* Section Headers */
+        section h2 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        /* Emergency Contacts Buttons */
+        .contacts button {
